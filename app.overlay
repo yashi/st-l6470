@@ -1,0 +1,19 @@
+&spi1 {
+	status = "okay";
+};
+
+&spi4 {
+	pinctrl-0 = <&spi4_sck_pe2 &spi4_miso_pe5 &spi4_mosi_pe6>;
+	pinctrl-names = "default";
+	cs-gpios = <&gpioe 4 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+	status = "okay";
+	motor_driver: l6470@0 {
+		compatible = "st,l6470";
+		reg =<0>;
+		stby-gpios = <&gpioe 15 (GPIO_ACTIVE_LOW)>;
+	};
+};
+
+&spi4_sck_pe2 {
+	bias-pull-up;
+};

@@ -1,0 +1,22 @@
+mainmenu "ST L6470 test application"
+
+menu "Application"
+
+choice MOTOR_DRIVER
+	prompt "Motor Driver"
+	help
+	  Select the motor driver.
+
+config L6470
+	bool "L6470"
+
+config L6480
+	bool "L6480"
+
+endchoice
+
+endmenu
+
+menu "Zephyr"
+source "Kconfig.zephyr"
+endmenu

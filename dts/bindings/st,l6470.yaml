@@ -1,0 +1,16 @@
+# Copyright (c) 2023, Space Cubics, LLC.
+# SPDX-License-Identifier: Apache-2.0
+
+description: my device
+
+compatible: "st,l6470"
+
+include: base.yaml
+
+properties:
+  reg:
+    required: true
+
+  stby-gpios:
+    type: phandle-array
+    required: true
