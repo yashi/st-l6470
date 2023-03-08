@@ -11,6 +11,7 @@ LOG_MODULE_REGISTER(app, LOG_LEVEL_DBG);
 
 #define MOTOR_SPI DT_NODELABEL(spi4)
 
+#if IS_ENABLED(CONFIG_L6470)
 static void debug_print(const struct device *const dev, struct spi_config *config, int count)
 {
 	uint16_t adc_out = l64x0_getparam_adc_out(dev, config);
@@ -34,6 +35,30 @@ static void debug_print(const struct device *const dev, struct spi_config *confi
 	       (status & L6470_STATUS_HiZ) ? "HiZ" : "",
 	       adc_out);
 }
+#elif IS_ENABLED(CONFIG_L6480)
+static void debug_print(const struct device *const dev, struct spi_config *config, int count)
+{
+	uint16_t adc_out = l64x0_getparam_adc_out(dev, config);
+	uint32_t speed = l64x0_getparam_speed(dev, config);
+	uint32_t status = l64x0_get_status(dev, config);
+	printk("%d: Speed: %u (0x%x), Status: 0x%x (%s%s%s%s%s%s%s%s%s%s%s%s), ADC_OUT %x\n",
+	       count,
+	       speed, speed, status,
+	       (status & L6480_STATUS_STEP_LOSS_B) ? "" : "STEP_LOSS_B ",
+	       (status & L6480_STATUS_STEP_LOSS_A) ? "" : "STEP_LOSS_A ",
+	       (status & L6480_STATUS_OCD) ? "" : "OCD ",
+	       (status & L6480_STATUS_UVLO_ADC) ? "" : "UVLO_ADC ",
+	       (status & L6480_STATUS_UVLO) ? "" : "UVLO ",
+	       (status & L6480_STATUS_STCK_MOD) ? "STCK_MOD " : "",
+	       (status & L6480_STATUS_CMD_ERROR) ? "CMD_ERROR " : "",
+	       (status & L6480_STATUS_DIR) ? "DIR_f " : "DIR_r ",
+	       (status & L6480_STATUS_SW_EVN) ? "SW_EVN " : "",
+	       (status & L6480_STATUS_SW_F) ? "SW_F " : "",
+	       (status & L6480_STATUS_BUSY) ? "" : "BUSY ",
+	       (status & L6480_STATUS_HiZ) ? "HiZ" : "",
+	       adc_out);
+}
+#endif
 
 void main(void)
 {
@@ -98,12 +123,24 @@ void main(void)
 
 	l64x0_setparam_fs_spd(dev, &config, 0x3ff);
 
-	/* OCD and Stall */
-	l64x0_setparam_ocd_th(dev, &config, L6470_OCD_TH_4125_mV);
-	l64x0_setparam_stall_th(dev, &config, L6470_STALL_TH_4000_mA);
+	if (IS_ENABLED(CONFIG_L6470)) {
+		/* OCD and Stall */
+		l64x0_setparam_ocd_th(dev, &config, L6470_OCD_TH_4125_mV);
+		l64x0_setparam_stall_th(dev, &config, L6470_STALL_TH_4000_mA);
+	}
+	else if (IS_ENABLED(CONFIG_L6480)) {
+		/* OCD and Stall */
+		l64x0_setparam_ocd_th(dev, &config, L6480_OCD_TH_125_mV);
+		l64x0_setparam_stall_th(dev, &config, L6480_STALL_TH_125_mV);
 
-	/* Configs */
-	//l64x0_setparam_config(dev, &config, CONFIG_F_PWM_INT(0) | CONFIG_F_PWM_DEC(7) | CONFIG_POW_SR(2) | CONFIG_OC_SD | CONFIG_EXT_CLK);
+		/* Gate Drive */
+		l64x0_setparam_gatecfg1(dev, &config, L6480_IGATE_8_mA | L6480_TCC_2875_ns);
+
+		/* Configs */
+		uint32_t reg;
+		reg = l64x0_getparam_config(dev, &config);
+		l64x0_setparam_config(dev, &config, reg | L6480_CONFIG_VCCVAL | L6480_CONFIG_UVLOVAL);
+	}
 
 	/* Now setttings are all done, wait for the charge pump to be above the threshold */
 	WAIT_FOR(l64x0_get_status(dev, &config) & L64X0_STATUS_UVLO, 2000, printk("."));
