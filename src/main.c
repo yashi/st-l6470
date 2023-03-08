@@ -7,7 +7,7 @@ LOG_MODULE_REGISTER(app, LOG_LEVEL_DBG);
 #include <zephyr/sys/util.h>
 #include <stdlib.h>
 
-#include "l6470.h"
+#include "l64x0.h"
 
 #define MOTOR_SPI DT_NODELABEL(spi4)
 
@@ -19,19 +19,19 @@ static void debug_print(const struct device *const dev, struct spi_config *confi
 	printk("%d: Speed: %u (0x%x), Status: 0x%x (%s%s%s%s%s%s%s%s%s%s%s%s%s), ADC_OUT %x\n",
 	       count,
 	       speed, speed, status,
-	       (status & L64X0_STATUS_SCK_MOD) ? "SCK_MOD " : "",
-	       (status & L64X0_STATUS_STEP_LOSS_B) ? "" : "STEP_LOSS_B ",
-	       (status & L64X0_STATUS_STEP_LOSS_A) ? "" : "STEP_LOSS_A ",
-	       (status & L64X0_STATUS_OCD) ? "" : "OCD ",
-	       (status & L64X0_STATUS_TH_SD) ? "" : "TH_SD ",
-	       (status & L64X0_STATUS_TH_WRN) ? "" : "TH_WRN ",
-	       (status & L64X0_STATUS_UVLO) ? "" : "UVLO ",
-	       (status & L64X0_STATUS_WRONG_CMD) ? "WRONG_CMD " : "",
-	       (status & L64X0_STATUS_NOTPERF_CMD) ? "NOTPERF_CMD " : "",
-	       (status & L64X0_STATUS_DIR) ? "DIR_f " : "DIR_r ",
-	       (status & L64X0_STATUS_SW_EVN) ? "SW_EVN " : "",
-	       (status & L64X0_STATUS_BUSY) ? "" : "BUSY ",
-	       (status & L64X0_STATUS_HiZ) ? "HiZ" : "",
+	       (status & L6470_STATUS_SCK_MOD) ? "SCK_MOD " : "",
+	       (status & L6470_STATUS_STEP_LOSS_B) ? "" : "STEP_LOSS_B ",
+	       (status & L6470_STATUS_STEP_LOSS_A) ? "" : "STEP_LOSS_A ",
+	       (status & L6470_STATUS_OCD) ? "" : "OCD ",
+	       (status & L6470_STATUS_TH_SD) ? "" : "TH_SD ",
+	       (status & L6470_STATUS_TH_WRN) ? "" : "TH_WRN ",
+	       (status & L6470_STATUS_UVLO) ? "" : "UVLO ",
+	       (status & L6470_STATUS_WRONG_CMD) ? "WRONG_CMD " : "",
+	       (status & L6470_STATUS_NOTPERF_CMD) ? "NOTPERF_CMD " : "",
+	       (status & L6470_STATUS_DIR) ? "DIR_f " : "DIR_r ",
+	       (status & L6470_STATUS_SW_EVN) ? "SW_EVN " : "",
+	       (status & L6470_STATUS_BUSY) ? "" : "BUSY ",
+	       (status & L6470_STATUS_HiZ) ? "HiZ" : "",
 	       adc_out);
 }
 
@@ -99,8 +99,8 @@ void main(void)
 	l64x0_setparam_fs_spd(dev, &config, 0x3ff);
 
 	/* OCD and Stall */
-	l64x0_setparam_ocd_th(dev, &config, L64X0_OCD_TH_4125_mV);
-	l64x0_setparam_stall_th(dev, &config, L64X0_STALL_TH_4000_mA);
+	l64x0_setparam_ocd_th(dev, &config, L6470_OCD_TH_4125_mV);
+	l64x0_setparam_stall_th(dev, &config, L6470_STALL_TH_4000_mA);
 
 	/* Configs */
 	//l64x0_setparam_config(dev, &config, CONFIG_F_PWM_INT(0) | CONFIG_F_PWM_DEC(7) | CONFIG_POW_SR(2) | CONFIG_OC_SD | CONFIG_EXT_CLK);

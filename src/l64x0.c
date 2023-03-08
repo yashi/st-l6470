@@ -1,14 +1,7 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(l64x0, LOG_LEVEL_DBG);
 
-#if IS_ENABLED(CONFIG_L6470)
-#include "l6470.h"
-#elif IS_ENABLED(CONFIG_L6480)
-#include "l6480.h"
-#else
-#error You must choose L6470 or L6480
-#endif
-
+#include "l64x0.h"
 
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/spi.h>
