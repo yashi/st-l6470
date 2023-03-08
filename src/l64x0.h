@@ -443,6 +443,9 @@ GEN_SETPARAM(alarm_en, ALARM_EN)
 #if IS_ENABLED(CONFIG_L6480)
 GEN_SETPARAM(gatecfg1, GATECFG1)
 GEN_SETPARAM(gatecfg2, GATECFG2)
+#else
+static inline void l64x0_setparam_gatecfg1(const struct device *const dev, struct spi_config *config, uint32_t val) { }
+static inline void l64x0_setparam_gatecfg2(const struct device *const dev, struct spi_config *config, uint32_t val) { }
 #endif
 GEN_SETPARAM(config, CONFIG)
 GEN_SETPARAM(status, STATUS)
@@ -479,6 +482,9 @@ GEN_GETPARAM(alarm_en, ALARM_EN)
 #if IS_ENABLED(CONFIG_L6480)
 GEN_GETPARAM(gatecfg1, GATECFG1)
 GEN_GETPARAM(gatecfg2, GATECFG2)
+#else
+static inline int l64x0_getparam_gatecfg1(const struct device *const dev, struct spi_config *config) { return 0; }
+static inline int l64x0_getparam_gatecfg2(const struct device *const dev, struct spi_config *config) { return 0; }
 #endif
 GEN_GETPARAM(config, CONFIG)
 GEN_GETPARAM(status, STATUS)
