@@ -105,7 +105,7 @@ static int bit_len[] = {
 
 #define BITS_TO_BYTES(x) (((x) + 7) >> 3)
 
-static int send_command(const struct device *const dev, struct spi_config *config, uint8_t cmd, int val, int tx_bytes, int rx_bytes)
+static int send_command(const struct device *const dev, const struct spi_config *config, uint8_t cmd, int val, int tx_bytes, int rx_bytes)
 {
         uint8_t value;
         struct spi_buf bufs;
