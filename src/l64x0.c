@@ -1,13 +1,25 @@
+/*
+ * Copyright (c) 2023 Space Cubics, LLC.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#define DT_DRV_COMPAT st_l6470
+
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(l64x0, LOG_LEVEL_DBG);
 
 #include "l64x0.h"
 
-#include <zephyr/kernel.h>
+#include <zephyr/device.h>
 #include <zephyr/drivers/spi.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/sys/util.h>
 #include <stdlib.h>
+
+struct l64x0_config {
+	struct spi_dt_spec spi;
+};
 
 /* Commands */
 #define RX_BYTES_NONE (0)
@@ -105,8 +117,10 @@ static int bit_len[] = {
 
 #define BITS_TO_BYTES(x) (((x) + 7) >> 3)
 
-static int send_command(const struct device *const dev, const struct spi_config *config, uint8_t cmd, int val, int tx_bytes, int rx_bytes)
+static int send_command(const struct device *const dev, uint8_t cmd, int val, int tx_bytes, int rx_bytes)
 {
+	const struct l64x0_config *config = dev->config;
+	const struct spi_dt_spec *spec = &config->spi;
         uint8_t value;
         struct spi_buf bufs;
         struct spi_buf_set bufset;
@@ -116,7 +130,7 @@ static int send_command(const struct device *const dev, const struct spi_config 
         bufs.len = 1;
         int ret = 0;
 
-        spi_write(dev, config, &bufset);
+        spi_write_dt(spec, &bufset);
 
         bufs.buf = &value;
 
@@ -125,26 +139,26 @@ static int send_command(const struct device *const dev, const struct spi_config 
                 break;
         case 1:
                 value = val & 0xff;
-                spi_write(dev, config, &bufset);
+                spi_write_dt(spec, &bufset);
 
                 break;
         case 2:
                 value = (val >> 8) & 0xff;
-                spi_write(dev, config, &bufset);
+                spi_write_dt(spec, &bufset);
 
                 value = val & 0xff;
-                spi_write(dev, config, &bufset);
+                spi_write_dt(spec, &bufset);
 
                 break;
         case 3:
                 value = (val >> 16) & 0xff;
-                spi_write(dev, config, &bufset);
+                spi_write_dt(spec, &bufset);
 
                 value = (val >> 8) & 0xff;
-                spi_write(dev, config, &bufset);
+                spi_write_dt(spec, &bufset);
 
                 value = val & 0xff;
-                spi_write(dev, config, &bufset);
+                spi_write_dt(spec, &bufset);
 
                 break;
         default:
@@ -157,26 +171,26 @@ static int send_command(const struct device *const dev, const struct spi_config 
         case 1:
                 /* FIXME: this breaks SPI communication */
                 //k_busy_wait(10);
-                spi_read(dev, config, &bufset);
+                spi_read_dt(spec, &bufset);
                 ret = value;
 
                 break;
         case 2:
-                spi_read(dev, config, &bufset);
+                spi_read_dt(spec, &bufset);
                 ret |= value << 8;
 
-                spi_read(dev, config, &bufset);
+                spi_read_dt(spec, &bufset);
                 ret |= value;
 
                 break;
         case 3:
-                spi_read(dev, config, &bufset);
+                spi_read_dt(spec, &bufset);
                 ret |= value << 16;
 
-                spi_read(dev, config, &bufset);
+                spi_read_dt(spec, &bufset);
                 ret |= value << 8;
 
-                spi_read(dev, config, &bufset);
+                spi_read_dt(spec, &bufset);
                 ret |= value;
 
                 break;
@@ -190,17 +204,17 @@ static int send_command(const struct device *const dev, const struct spi_config 
         return ret;
 }
 
-static int send_command_simple(const struct device *const dev, struct spi_config *config, uint8_t cmd)
+static int send_command_simple(const struct device *const dev, uint8_t cmd)
 {
-        return send_command(dev, config, cmd, 0, TX_BYTES_NONE, RX_BYTES_NONE);
+        return send_command(dev, cmd, 0, TX_BYTES_NONE, RX_BYTES_NONE);
 }
 
-int l64x0_nop(const struct device *const dev, struct spi_config *config)
+int l64x0_nop(const struct device *const dev)
 {
-        return send_command_simple(dev, config, CMD_NOP);
+        return send_command_simple(dev, CMD_NOP);
 }
 
-void l64x0_setparam(const struct device *const dev, struct spi_config *config, uint8_t param, uint32_t val)
+void l64x0_setparam(const struct device *const dev, uint8_t param, uint32_t val)
 {
         int tx_bytes;
 
@@ -211,10 +225,10 @@ void l64x0_setparam(const struct device *const dev, struct spi_config *config, u
 
         tx_bytes = BITS_TO_BYTES(bit_len[param]);
 
-        send_command(dev, config, param, val, tx_bytes, RX_BYTES_NONE);
+        send_command(dev, param, val, tx_bytes, RX_BYTES_NONE);
 }
 
-int l64x0_getparam(const struct device *const dev, struct spi_config *config, uint8_t param)
+int l64x0_getparam(const struct device *const dev, uint8_t param)
 {
         int rx_bytes;
 
@@ -225,51 +239,79 @@ int l64x0_getparam(const struct device *const dev, struct spi_config *config, ui
 
         rx_bytes = BITS_TO_BYTES(bit_len[param]);
 
-        return send_command(dev, config, CMD_GET_PARAM | param, 0, TX_BYTES_NONE, rx_bytes);
+        return send_command(dev, CMD_GET_PARAM | param, 0, TX_BYTES_NONE, rx_bytes);
 }
 
-int l64x0_run(const struct device *const dev, struct spi_config *config, int speed)
+int l64x0_run(const struct device *const dev, int speed)
 {
         bool dir = speed >= 0;
 
-        return send_command(dev, config, CMD_RUN | dir, abs(speed), TX_BYTES_RUN, RX_BYTES_NONE);
+	return send_command(dev, CMD_RUN | dir, abs(speed), TX_BYTES_RUN, RX_BYTES_NONE);
 }
 
-int l64x0_move(const struct device *const dev, struct spi_config *config, int n_step)
+int l64x0_move(const struct device *const dev, int n_step)
 {
         bool dir = n_step >= 0;
 
-        send_command(dev, config, CMD_MOVE | dir, abs(n_step), TX_BYTES_MOVE, RX_BYTES_NONE);
+        send_command(dev, CMD_MOVE | dir, abs(n_step), TX_BYTES_MOVE, RX_BYTES_NONE);
 
         return 0;
 }
 
-int l64x0_reset_device(const struct device *const dev, struct spi_config *config)
+int l64x0_reset_device(const struct device *const dev)
 {
-        return send_command_simple(dev, config, CMD_RESET_DEVICE);
+        return send_command_simple(dev, CMD_RESET_DEVICE);
 }
 
-int l64x0_soft_stop(const struct device *const dev, struct spi_config *config)
+int l64x0_soft_stop(const struct device *const dev)
 {
-        return send_command_simple(dev, config, CMD_SOFT_STOP);
+        return send_command_simple(dev, CMD_SOFT_STOP);
 }
 
-int l64x0_hard_stop(const struct device *const dev, struct spi_config *config)
+int l64x0_hard_stop(const struct device *const dev)
 {
-        return send_command_simple(dev, config, CMD_HARD_STOP);
+        return send_command_simple(dev, CMD_HARD_STOP);
 }
 
-int l64x0_soft_hiz(const struct device *const dev, struct spi_config *config)
+int l64x0_soft_hiz(const struct device *const dev)
 {
-        return send_command_simple(dev, config, CMD_SOFT_HIZ);
+        return send_command_simple(dev, CMD_SOFT_HIZ);
 }
 
-int l64x0_hard_hiz(const struct device *const dev, struct spi_config *config)
+int l64x0_hard_hiz(const struct device *const dev)
 {
-        return send_command_simple(dev, config, CMD_HARD_HIZ);
+        return send_command_simple(dev, CMD_HARD_HIZ);
 }
 
-int l64x0_get_status(const struct device *const dev, struct spi_config *config)
+int l64x0_get_status(const struct device *const dev)
 {
-        return send_command(dev, config, CMD_GET_STATUS, 0, TX_BYTES_NONE, RX_BYTES_GET_STATUS);
+        return send_command(dev, CMD_GET_STATUS, 0, TX_BYTES_NONE, RX_BYTES_GET_STATUS);
 }
+
+int l64x0_init(const struct device *dev)
+{
+	return 0;
+}
+
+#define L64X0_INIT(n)							\
+	static const struct l64x0_config l64x0_cfg_##n = {		\
+		.spi = SPI_DT_SPEC_INST_GET(n,				\
+					    SPI_OP_MODE_MASTER |	\
+					    SPI_MODE_CPOL |		\
+					    SPI_MODE_CPHA |		\
+					    SPI_TRANSFER_MSB |		\
+					    SPI_WORD_SET(8) |		\
+					    SPI_LOCK_ON,		\
+					    0),				\
+	};								\
+									\
+	DEVICE_DT_INST_DEFINE(n,					\
+			      &l64x0_init,				\
+			      NULL,					\
+			      NULL,					\
+			      &l64x0_cfg_##n,				\
+			      POST_KERNEL,				\
+			      0,					\
+			      NULL);
+
+DT_INST_FOREACH_STATUS_OKAY(L64X0_INIT)

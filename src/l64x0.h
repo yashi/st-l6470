@@ -1,5 +1,11 @@
+/*
+ * Copyright (c) 2023 Space Cubics, LLC.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include <zephyr/sys/util.h>
-#include <zephyr/drivers/spi.h>
+#include <zephyr/device.h>
 
 enum L64x0Addr {
 	L64x0_ADDR_ABS_POS    = 0x01,
@@ -395,35 +401,35 @@ enum L64x0Addr {
 #define L64X0_STATUS_HIZ		L6480_STATUS_HIZ
 #endif
 
-int l64x0_nop(const struct device *const dev, struct spi_config *config);
-void l64x0_setparam(const struct device *const dev, struct spi_config *config, uint8_t param, uint32_t val);
-int l64x0_getparam(const struct device *const dev, struct spi_config *config, uint8_t param);
-int l64x0_run(const struct device *const dev, struct spi_config *config, int speed);
-int l64x0_move(const struct device *const dev, struct spi_config *config, int n_step);
-int l64x0_reset_device(const struct device *const dev, struct spi_config *config);
-int l64x0_soft_stop(const struct device *const dev, struct spi_config *config);
-int l64x0_hard_stop(const struct device *const dev, struct spi_config *config);
-int l64x0_soft_hiz(const struct device *const dev, struct spi_config *config);
-int l64x0_hard_hiz(const struct device *const dev, struct spi_config *config);
-int l64x0_get_status(const struct device *const dev, struct spi_config *config);
+int l64x0_nop(const struct device *const dev);
+void l64x0_setparam(const struct device *const dev, uint8_t param, uint32_t val);
+int l64x0_getparam(const struct device *const dev, uint8_t param);
+int l64x0_run(const struct device *const dev, int speed);
+int l64x0_move(const struct device *const dev, int n_step);
+int l64x0_reset_device(const struct device *const dev);
+int l64x0_soft_stop(const struct device *const dev);
+int l64x0_hard_stop(const struct device *const dev);
+int l64x0_soft_hiz(const struct device *const dev);
+int l64x0_hard_hiz(const struct device *const dev);
+int l64x0_get_status(const struct device *const dev);
 
 #define GEN_SETPARAM(fname, pname)					\
-	static inline void l64x0_setparam_ ##fname(const struct device *const dev, struct spi_config *config, uint32_t val) \
+	static inline void l64x0_setparam_ ##fname(const struct device *const dev, uint32_t val) \
 	{								\
-		l64x0_setparam(dev, config, L64x0_ADDR_ ##pname, val);	\
+		l64x0_setparam(dev, L64x0_ADDR_ ##pname, val); \
 	}
 
 GEN_SETPARAM(acc, ACC)
 GEN_SETPARAM(dec, DEC)
 GEN_SETPARAM(max_speed, MAX_SPEED)
-static inline void l64x0_setparam_min_speed(const struct device *const dev, struct spi_config *config, uint32_t speed, bool lspd_opt)
+static inline void l64x0_setparam_min_speed(const struct device *const dev, uint32_t speed, bool lspd_opt)
 {
 	uint32_t val = speed & GENMASK(11, 0);
 
 	if (lspd_opt)
 		val |= L64X0_MIN_SPEED_LSPD_OPT;
 
-	l64x0_setparam(dev, config, L64x0_ADDR_MIN_SPEED, val);
+	l64x0_setparam(dev, L64x0_ADDR_MIN_SPEED, val);
 }
 GEN_SETPARAM(kval_hold, KVAL_HOLD)
 GEN_SETPARAM(kval_run, KVAL_RUN)
@@ -444,16 +450,16 @@ GEN_SETPARAM(alarm_en, ALARM_EN)
 GEN_SETPARAM(gatecfg1, GATECFG1)
 GEN_SETPARAM(gatecfg2, GATECFG2)
 #else
-static inline void l64x0_setparam_gatecfg1(const struct device *const dev, struct spi_config *config, uint32_t val) { }
-static inline void l64x0_setparam_gatecfg2(const struct device *const dev, struct spi_config *config, uint32_t val) { }
+static inline void l64x0_setparam_gatecfg1(const struct device *const dev, uint32_t val) { }
+static inline void l64x0_setparam_gatecfg2(const struct device *const dev, uint32_t val) { }
 #endif
 GEN_SETPARAM(config, CONFIG)
 GEN_SETPARAM(status, STATUS)
 
 #define GEN_GETPARAM(fname, pname)					\
-	static inline int l64x0_getparam_ ##fname(const struct device *const dev, struct spi_config *config) \
+	static inline int l64x0_getparam_ ##fname(const struct device *const dev) \
 	{								\
-		return l64x0_getparam(dev, config, L64x0_ADDR_ ##pname);	\
+		return l64x0_getparam(dev, L64x0_ADDR_ ##pname); \
 	}
 
 GEN_GETPARAM(abs_pos, ABS_POS)
@@ -483,8 +489,8 @@ GEN_GETPARAM(alarm_en, ALARM_EN)
 GEN_GETPARAM(gatecfg1, GATECFG1)
 GEN_GETPARAM(gatecfg2, GATECFG2)
 #else
-static inline int l64x0_getparam_gatecfg1(const struct device *const dev, struct spi_config *config) { return 0; }
-static inline int l64x0_getparam_gatecfg2(const struct device *const dev, struct spi_config *config) { return 0; }
+static inline int l64x0_getparam_gatecfg1(const struct device *const dev) { return 0; }
+static inline int l64x0_getparam_gatecfg2(const struct device *const dev) { return 0; }
 #endif
 GEN_GETPARAM(config, CONFIG)
 GEN_GETPARAM(status, STATUS)
