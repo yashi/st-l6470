@@ -15,6 +15,13 @@ config L6480
 
 endchoice
 
+config L64X0_INIT_PRIORITY
+	int "Motor init priority"
+	default 75
+	help
+	  Motor driver initialization priority. This must be larger
+	  than config CONFIG_SPI_INIT_PRIORITY, which is 70.
+
 endmenu
 
 menu "Zephyr"

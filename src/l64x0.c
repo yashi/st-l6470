@@ -311,7 +311,7 @@ int l64x0_init(const struct device *dev)
 			      NULL,					\
 			      &l64x0_cfg_##n,				\
 			      POST_KERNEL,				\
-			      0,					\
+			      CONFIG_L64X0_INIT_PRIORITY,		\
 			      NULL);
 
 DT_INST_FOREACH_STATUS_OKAY(L64X0_INIT)
