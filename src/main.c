@@ -65,20 +65,20 @@ static void debug_print(const struct device *const dev, int count)
 }
 #endif
 
-void main(void)
+int main(void)
 {
 	const struct device *const dev = DEVICE_DT_GET(MOTOR_DRIVER);
 
 	if (!device_is_ready(dev)) {
 		printk("%s: device not ready.\n", dev->name);
-		return;
+		return EXIT_FAILURE;
 	}
 
 	const struct gpio_dt_spec n_stby =
 		GPIO_DT_SPEC_GET(DT_NODELABEL(motor_driver), stby_gpios);
 	if (!device_is_ready(n_stby.port)) {
 		printk("%s: device not ready.\n", dev->name);
-		return;
+		return EXIT_FAILURE;
 	}
 	gpio_pin_configure_dt(&n_stby, GPIO_OUTPUT_ACTIVE);
 	k_usleep(10);
@@ -157,5 +157,5 @@ void main(void)
 	l64x0_soft_hiz(dev);
 	printk("done\n");
 
-	return;
+	return EXIT_SUCCESS;
 }
