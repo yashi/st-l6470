@@ -17,5 +17,6 @@
 };
 
 &spi4_sck_pe2 {
+	/delete-property/ bias-pull-down;
 	bias-pull-up;
 };
